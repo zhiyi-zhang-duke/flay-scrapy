@@ -30,3 +30,5 @@ class RecipeItem(Item):
     n_ingredients = Field()
     contributor = Field()
     dateSubmitted = Field()
+    image = Field()
+    recipeURL = Field()

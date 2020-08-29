@@ -7,10 +7,50 @@ import json
 class WoksOfLifeSpider(scrapy.Spider):
 	name = 'recipes'
 	start_urls = [
-		'https://thewoksoflife.com/chinese-preserved-greens/',
+		'https://thewoksoflife.com/recipe-list/?category=vegetarian',
+		'https://thewoksoflife.com/recipe-list/?category=quick-and-easy',
+		'https://thewoksoflife.com/recipe-list/?category=gluten-free-recipes',
+		'https://thewoksoflife.com/recipe-list/?category=Chinese-take-out',
+		'https://thewoksoflife.com/recipe-list/?category=dim-sum',
+		'https://thewoksoflife.com/recipe-list/?category=dumplings',
+		'https://thewoksoflife.com/recipe-list/?category=steamed-dishes',
+		'https://thewoksoflife.com/recipe-list/?category=sandwiches',
+		'https://thewoksoflife.com/recipe-list/?category=grilling-recipes',
+		'https://thewoksoflife.com/recipe-list/?category=chinese-bakery',
+		'https://thewoksoflife.com/recipe-list/?category=chinese-banquet',
+		'https://thewoksoflife.com/recipe-list/?category=chinese-new-year',
+		'https://thewoksoflife.com/recipe-list/?category=holiday-season-recipes',
+		'https://thewoksoflife.com/recipe-list/?category=party-food',
+		'https://thewoksoflife.com/recipe-list/?category=beef-recipes',
+		'https://thewoksoflife.com/recipe-list/?category=chicken',
+		'https://thewoksoflife.com/recipe-list/?category=pork',
+		'https://thewoksoflife.com/recipe-list/?category=lamb',
+		'https://thewoksoflife.com/recipe-list/?category=fish-and-seafood',
+		'https://thewoksoflife.com/recipe-list/?category=eggs',
+		'https://thewoksoflife.com/recipe-list/?category=vegetables',
+		'https://thewoksoflife.com/recipe-list/?category=tofu',
+		'https://thewoksoflife.com/recipe-list/?category=bread-and-pizza',
+		'https://thewoksoflife.com/recipe-list/?category=noodles-pasta-recipes',
+		'https://thewoksoflife.com/recipe-list/?category=rice-recipes',
+		'https://thewoksoflife.com/recipe-list/?category=soups-and-stocks',
+		'https://thewoksoflife.com/recipe-list/?category=condiments',
+		'https://thewoksoflife.com/recipe-list/?category=beverages',
+		'https://thewoksoflife.com/recipe-list/?category=dessert',
+		'https://thewoksoflife.com/recipe-list/?category=breakfast-brunch',
+		'https://thewoksoflife.com/recipe-list/?category=appetizers-and-snacks',
+		'https://thewoksoflife.com/recipe-list/?category=soups-and-stocks',
+		'https://thewoksoflife.com/recipe-list/?category=salads',
+		'https://thewoksoflife.com/recipe-list/?category=main-dishes',
+		'https://thewoksoflife.com/recipe-list/?category=side-dishes',
+		'https://thewoksoflife.com/recipe-list/?category=dessert'
 	]
 
 	def parse(self, response):
+		if "recipe-list" in response.request.url:
+			relatedPosts = response.css('.kd-listing *::attr(href)').getall()
+			for next_page in response.css('.kd-ind-list').css('a::attr(href)').getall():
+				yield response.follow(next_page, self.parse)
+
 		#Create scrapy item
 		item = RecipeItem()
 
@@ -24,8 +64,8 @@ class WoksOfLifeSpider(scrapy.Spider):
 		item["recipeName"] = recipe_data["name"]
 
 		#Time to make
-		#This assumes the
-		formattedTime = "Preptime: "
+		#This assumes the time is always given in minutes
+		formattedTime = "Prep Time: "
 		prepTimeRaw = int(recipe_data["prepTime"][2:-1])
 		prepTimeDay = prepTimeRaw // (24 * 60)
 		if prepTimeDay > 0:
@@ -38,6 +78,8 @@ class WoksOfLifeSpider(scrapy.Spider):
 		if prepTimeRaw > 0:
 			formattedTime+=(" " + str(prepTimeRaw) + " minutes")		
 
+		#Total time
+		formattedTime+=" Total time: "
 		totalTimeRaw = int(recipe_data["totalTime"][2:-1])
 		totalTimeDay = totalTimeRaw // (24 * 60)
 		if totalTimeDay > 0:
@@ -81,7 +123,17 @@ class WoksOfLifeSpider(scrapy.Spider):
 		item['contributor'] = author_data["name"]
 		item['dateSubmitted'] = submission_data["datePublished"]
 
+		#Image
+		item['image'] = recipe_data["image"][0]
+
+		#RecipeURL
+		item['recipeURL'] = recipe_data["@id"]
+
 		yield item
+
+		#Download related recipes
+		response.css('.relpost-block-container::text').get()
+		
 
 
 	def oldParse(self, response):
